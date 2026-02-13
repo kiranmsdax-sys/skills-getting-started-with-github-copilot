@@ -28,14 +28,59 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="participants-section">
               <strong>Participants:</strong>
               ${details.participants.length > 0 ? `
-                <ul class="participants-list">
-                  ${details.participants.map(p => `<li>${p}</li>`).join('')}
+                <ul class="participants-list no-bullets">
+                  ${details.participants.map(p => `
+                    <li>
+                      <span class="participant-name">${p}</span>
+                      <button class="delete-participant" title="Remove participant" data-activity="${name}" data-participant="${p}">
+                        <span class="delete-icon">&#128465;</span>
+                      </button>
+                    </li>
+                  `).join('')}
                 </ul>
               ` : '<p class="no-participants">No participants yet.</p>'}
             </div>
           `;
 
         activitiesList.appendChild(activityCard);
+          // Add delete event listeners for participants
+          const deleteButtons = activityCard.querySelectorAll('.delete-participant');
+          deleteButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const activityName = btn.getAttribute('data-activity');
+              const participant = btn.getAttribute('data-participant');
+              try {
+                const response = await fetch(
+                  `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(participant)}`,
+                  {
+                    method: "DELETE",
+                  }
+                );
+                const result = await response.json();
+                if (response.ok) {
+                  messageDiv.textContent = result.message || 'Participant removed.';
+                  messageDiv.className = "success";
+                  fetchActivities(); // Refresh list
+                } else {
+                  messageDiv.textContent = result.detail || "Failed to remove participant.";
+                  messageDiv.className = "error";
+                }
+                messageDiv.classList.remove("hidden");
+                setTimeout(() => {
+                  messageDiv.classList.add("hidden");
+                }, 5000);
+              } catch (error) {
+                messageDiv.textContent = "Error removing participant.";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+                setTimeout(() => {
+                  messageDiv.classList.add("hidden");
+                }, 5000);
+                console.error("Error unregistering participant:", error);
+              }
+            });
+          });
 
         // Add option to select dropdown
         const option = document.createElement("option");
